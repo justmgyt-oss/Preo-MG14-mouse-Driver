@@ -1,0 +1,21 @@
+# Build artefacts
+build/
+*.o
+*.obj
+*.pdb
+
+# The built .exe is the deliverable, so dist/ is tracked on purpose.
+# Only the stray debug symbols are excluded.
+dist/*.pdb
+dist/*.map
+
+# Vendored toolchains (386 MB) - never commit these
+.toolchain/
+zigvenv/
+.venv/
+
+# Editor / OS noise
+.vscode/
+.idea/
+*.swp
+.DS_Store
