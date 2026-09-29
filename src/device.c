@@ -351,3 +351,90 @@ HDEVINFO device_open_by_instance(const wchar_t *devInst, PSP_DEVINFO_DATA di)
     SetupDiDestroyDeviceInfoList(hSet);
     return INVALID_HANDLE_VALUE;
 }
+
+/* ------------------------------------------------------------------ *
+ * Enumerate every present HID collection. Used by --diagnose so that a
+ * user whose mouse is not being matched can see what Windows actually
+ * reports and feed it back.
+ * ------------------------------------------------------------------ */
+void device_list_all_hid(wchar_t *buf, size_t cch, int *outLen)
+{
+    HDEVINFO  hSet;
+    SP_DEVICE_INTERFACE_DATA ifData;
+    DWORD     ifIndex = 0;
+    size_t    used = 0;
+
+    if (outLen) *outLen = 0;
+    if (!buf || cch < 2) return;
+    buf[0] = L'\0';
+
+    hSet = SetupDiGetClassDevsW(&GUID_DEVINTERFACE_HID_LOCAL, NULL, NULL,
+                                DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
+    if (hSet == INVALID_HANDLE_VALUE) {
+        wstr_copy(buf, cch, L"  (SetupDiGetClassDevs failed)\n", 60);
+        if (outLen) *outLen = (int)wcslen(buf);
+        return;
+    }
+
+    ZeroMemory(&ifData, sizeof(ifData));
+    ifData.cbSize = sizeof(ifData);
+
+    while (SetupDiEnumDeviceInterfaces(hSet, NULL, &GUID_DEVINTERFACE_HID_LOCAL,
+                                       ifIndex, &ifData)) {
+        SP_DEVINFO_DATA di;
+        wchar_t instanceId[512], line[1024], idbuf[1024];
+        DWORD   need = 0, type = 0, status = 0, problem = 0;
+        BOOL    match;
+
+        ifIndex++;
+        di.cbSize = sizeof(di);
+        if (!SetupDiGetDeviceInterfaceDetailW(hSet, &ifData, NULL, 0, NULL, &di))
+            continue;
+        if (!SetupDiGetDeviceInstanceIdW(hSet, &di, instanceId, 512, NULL))
+            continue;
+
+        match = hardware_ids_match(hSet, &di);
+        CM_Get_DevNode_Status(&status, &problem, di.DevInst, 0);
+
+        idbuf[0] = L'\0';
+        {
+            DEVPROPKEY key = KEY_HARDWARE_IDS;
+            if (SetupDiGetDevicePropertyW(hSet, &di, &key, &type, (PBYTE)idbuf,
+                                          sizeof(idbuf) - sizeof(wchar_t), &need, 0)) {
+                /* collapse the MULTI_SZ to a readable list */
+                wchar_t *p = idbuf;
+                size_t   w = 0;
+                while (*p) {
+                    size_t n = wcslen(p);
+                    if (w + n + 3 >= cch) break;
+                    wstr_copy(buf + w, cch - w, p, n);
+                    w += n;
+                    wstr_copy(buf + w, cch - w, L", ", 2); w += 2;
+                    p += n + 1;
+                }
+                if (w >= 2) buf[w - 2] = L'\0';
+            }
+        }
+
+        _snwprintf(line, 1024,
+                   L"  %s%s\n     instance : %s\n     ids      : %s\n     problem  : %lu%s\n",
+                   match ? L"* " : L"  ", instanceId,
+                   instanceId,
+                   idbuf[0] ? idbuf : L"(none)",
+                   problem,
+                   match ? L"   <== matches the MG14" : L"");
+        line[1023] = L'\0';
+
+        {
+            size_t n = wcslen(line);
+            if (used + n + 1 < cch) {
+                wstr_copy(buf + used, cch - used, line, n);
+                used += n;
+            } else {
+                break;
+            }
+        }
+    }
+    SetupDiDestroyDeviceInfoList(hSet);
+    if (outLen) *outLen = (int)used;
+}

@@ -17,7 +17,7 @@ TARGET="x86_64-windows-gnu"
 OUT="dist/PreoMG14Driver.exe"
 OBJDIR="build/obj"
 
-SOURCES=(util settings device hidinfo driverops buttons main)
+SOURCES=(util settings device hidinfo driverops buttons diagnostics main)
 LIBS=(-lhid -lsetupapi -lcfgmgr32 -ladvapi32 -lshell32 -lversion -lcomctl32 -luser32 -lgdi32)
 
 if [[ "${1:-}" == "--clean" ]]; then

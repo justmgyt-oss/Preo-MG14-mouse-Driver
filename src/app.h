@@ -131,6 +131,10 @@ BOOL   file_version_info(const wchar_t *path, wchar_t *ver, size_t cchVer,
  * the returned set and must call SetupDiDestroyDeviceInfoList. */
 HDEVINFO device_open_by_instance(const wchar_t *devInst, PSP_DEVINFO_DATA di);
 
+/* Append a human-readable dump of every present HID collection to `buf`,
+ * marking the ones that match the MG14. Used by --diagnose. */
+void device_list_all_hid(wchar_t *buf, size_t cch, int *outLen);
+
 /* hidinfo.c ------------------------------------------------------------- */
 BOOL   hid_query(DeviceInfo *dev);     /* fill HID fields, needs open dev  */
 
@@ -165,5 +169,11 @@ void   remap_set_notify(HWND w);
 /* main.c ----------------------------------------------------------------- */
 BOOL   apply_pointer_settings(const Settings *s, BOOL perDevice, HWND hWnd);
 BOOL   apply_autostart(BOOL enable);
+
+/* diagnostics.c ---------------------------------------------------------- */
+/* Console report of everything the program can see about the machine. This is
+ * the way to get a real-hardware sanity check without a GUI. */
+BOOL diagnostics_requested(LPWSTR cmdLine);
+int  run_diagnostics(LPWSTR cmdLine);
 
 #endif /* PREO_APP_H */

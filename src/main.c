@@ -894,6 +894,9 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, PWSTR cmdline, int show)
 
     (void)prev;
 
+    /* Console report: no window, no elevation, no side effects. */
+    if (diagnostics_requested(cmdline)) return run_diagnostics(cmdline);
+
     /* One instance only: two copies would fight over the low-level hook.
      * The elevated half is a deliberate second copy, so let that one through. */
     mutex = CreateMutexW(NULL, TRUE, L"Local\\PreoMG14DriverSingleton");

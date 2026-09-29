@@ -27,6 +27,26 @@ most important thing to understand about this project.
 To remove it completely: delete the `.exe`, then delete
 `%LOCALAPPDATA%\PreoMG14Driver`. See [Uninstall](#uninstall).
 
+### If something is wrong, start here
+
+```cmd
+PreoMG14Driver.exe --diagnose
+```
+
+That prints a plain text report: your real Windows build (read via
+`RtlGetVersion`, so the manifest cannot lie about it), whether the MG14 was
+matched, the full driver details if it was, the complete list of every HID
+collection Windows is reporting with your MG14 marked, and the current
+Windows pointer settings.
+
+It opens no window, needs no administrator rights, and changes nothing. It is
+the fastest way to find out why a mouse is not being detected — if the
+`All HID collections` section shows a different VID/PID than `30FA`/`0400`,
+that is exactly what needs fixing in the match table, and the report says so.
+
+If it cannot attach to a console it writes `%TEMP%\PreoMG14Diagnostic.txt`
+instead.
+
 ---
 
 ## What it does
@@ -209,6 +229,7 @@ src/
   wincompat.h     declarations the mingw-w64 headers get wrong or omit
   app.h           shared types and interfaces
   main.c          window, tabs, the four pages
+  diagnostics.c   the --diagnose console report
   device.c        SetupAPI enumeration and device description
   hidinfo.c       HID collection capabilities
   driverops.c     the three privileged driver operations
@@ -248,7 +269,9 @@ cannot be called safely from here.
 - **Not tested on physical MG14 hardware.** It was written and statically
   verified on Linux against the documented Windows APIs, and the import table
   and embedded resources were checked programmatically, but it has never been
-  run on a machine with the mouse attached. Treat the first run as a test.
+  run on a machine with the mouse attached. Treat the first run as a test,
+  and run `--diagnose` first — it will tell you immediately whether the mouse
+  is being matched at all.
 - **Button remapping stops when the window closes.** Making it survive logoff
   would need either an autostart entry (opt-in, in the Pointer tab) or a
   service, which this project deliberately does not install.
